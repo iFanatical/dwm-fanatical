@@ -200,7 +200,8 @@ static const char *filemanager[] 	= { "thunar", NULL };
 static const char *browser[] 		= { "brave", NULL };
 static const char *powermenu[] 		= { "sh", "-c", "$SCRIPTS/rofi-powermenu.sh", NULL };
 static const char *powersaving[]	= { "sh", "-c", "$SCRIPTS/monitors.sh", NULL };
-static const char *screenshotcmd[] 	= { "/bin/sh", "-c", "$SCRIPTS/screenshot.sh", NULL };
+static const char *screenshotcmd[] 	= { "sh", "-c", "$SCRIPTS/screenshot.sh", NULL };
+static const char *bluetooth[]		= { "sh", "-c", "$SCRIPTS/rofi-bluetooth.sh", NULL };
 
 static const Key keys[] = {
 	/* modifier                     key        	function        argument */
@@ -268,6 +269,7 @@ static const Key keys[] = {
 	{ CTRL|ALT,			XK_l,		spawn,		{.v = powermenu } },
 	{ ALT,				XK_o,		spawn,		{.v = powersaving } },
 	{ 0,		                XK_Print,	spawn,          {.v = screenshotcmd } },
+	{ CTRL|ALT,	                XK_b,		spawn,          {.v = bluetooth } },
 };
 
 /* button definitions */
