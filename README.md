@@ -1,0 +1,2 @@
+# dwm-fanatical
+dwm configuration
