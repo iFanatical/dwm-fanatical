@@ -8,15 +8,12 @@ static const unsigned int gappiv    	= 4;       /* vert inner gap between window
 static const unsigned int gappoh    	= 4;       /* horiz outer gap between windows and screen edge */
 static const unsigned int gappov    	= 4;       /* vert outer gap between windows and screen edge */
 static       int smartgaps          	= 1;        /* 1 means no outer gap when there is only one window */
-static const unsigned int systraypinning = 1;   /* 0: sloppy systray follows selected monitor, >0: pin systray to monitor X */
-static const unsigned int systrayonleft = 0;   	/* 0: systray in the right corner, >0: systray on left of status text */
-static const unsigned int systrayspacing = 2;   /* systray spacing */
-static const int systraypinningfailfirst = 1;   /* 1: if pinning fails, display systray on the first monitor, False: display systray on the last monitor*/
-static const int showsystray        	= 1;     /* 0 means no systray */
 static const int showbar            	= 1;     /* 0 means no bar */
 static const int topbar             	= 1;     /* 0 means bottom bar */
 static const char *fonts[]          	= { "JetBrainsMonoNL Nerd Font Propo:bold:pixelsize=16:antialias=true:autohint=true" };
 static const char dmenufont[]       	= "JetBrainsMono Nerd Font Propo:size=16";
+static const unsigned int baralpha = 0xd0;
+static const unsigned int borderalpha = OPAQUE;
 static const char col_gray1[]       	= "#282a33";
 static const char col_gray2[]       	= "#1d1f21";
 static const char col_gray3[]       	= "#bcbcbc";
@@ -65,8 +62,13 @@ static const char col_white[] 		= "#efefef";
 static const char col_white_bright[] 	= "#bcbcbc";
 static const char *colors[][3]      = {
 	/*               fg         bg         border   */
-	[SchemeNorm] = { col_white, col_gray2, col_gray1 },
+	[SchemeNorm] = { col_magenta_bright, col_gray2, col_gray1 },
 	[SchemeSel]  = { col_cyan, col_gray1,  col_cyan  },
+};
+static const unsigned int alphas[][3]      = {
+    /*               fg      bg        border*/
+    [SchemeNorm] = { OPAQUE, baralpha, borderalpha },
+	[SchemeSel]  = { OPAQUE, baralpha, borderalpha },
 };
 
 /* tagging */
@@ -85,6 +87,7 @@ static const Rule rules[] = {
     { "copyq",	NULL,	NULL,	0,	1,	-1	},
     { "Yad",	NULL,	NULL,	0,	1,	-1	},
     { "lxqt-archiver",	NULL,	NULL,	0,	1,	-1 },
+    { "system-config-printer",	NULL,	NULL,	0,	1,	-1 },
     { NULL,  NULL,	"Steam Settings",	0,	1,	-1 },
 	
     /* Assign Program tags */
@@ -155,6 +158,7 @@ static const int resizehints	= 1;    /* 1 means respect size hints in tiled resi
 static const int lockfullscreen = 1; /* 1 will force focus on the fullscreen window */
 static const int mainmon 	= 0; /* xsetroot will only change the bar on this monitor */
 
+#define STATUSBAR "dwmblocks"
 #define FORCE_VSPLIT 1  /* nrowgrid layout: force two clients to always split vertically */
 #include "vanitygaps.c"
 
@@ -188,8 +192,18 @@ static const Layout layouts[] = {
 	{ MODKEY|SHIFT,             	KEY,      tag,            {.ui = 1 << TAG} }, \
 	{ MODKEY|CTRL|SHIFT,		KEY,      toggletag,      {.ui = 1 << TAG} },
 
+#define STACKKEYS(MOD,ACTION) \
+	{ MOD, 				XK_j,     ACTION##stack, 	{.i = INC(+1) } }, \
+	{ MOD, 				XK_k,     ACTION##stack, 	{.i = INC(-1) } }, \
+	{ MOD, 				XK_grave, ACTION##stack, 	{.i = PREVSEL } }, \
+	{ MOD, 				XK_q,     ACTION##stack, 	{.i = 0 } }, \
+	{ MOD, 				XK_a,     ACTION##stack, 	{.i = 1 } }, \
+	{ MOD, 				XK_z,     ACTION##stack, 	{.i = 2 } }, \
+	{ MOD, 				XK_x,     ACTION##stack, 	{.i = -1 } },
 /* helper for spawning shell commands in the pre dwm-5.0 fashion */
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
+
+#define STATUSBAR "dwmblocks"
 
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
@@ -202,21 +216,22 @@ static const char *powermenu[] 		= { "sh", "-c", "$SCRIPTS/rofi-powermenu.sh", N
 static const char *powersaving[]	= { "sh", "-c", "$SCRIPTS/monitors.sh", NULL };
 static const char *screenshotcmd[] 	= { "sh", "-c", "$SCRIPTS/screenshot.sh", NULL };
 static const char *bluetooth[]		= { "sh", "-c", "$SCRIPTS/rofi-bluetooth.sh", NULL };
+static const char *powerprof[]		= { "sh", "-c", "$SCRIPTS/power-profiles.sh", NULL };
+static const char *dunsttog[]		= { "sh", "-c", "$SCRIPTS/dunst-blocks.sh", NULL };
+static const char *record[]		= { "sh", "-c", "$SCRIPTS/record.sh", NULL };
+
 
 static const Key keys[] = {
 	/* modifier                     key        	function        argument */
 	{ MODKEY,                       XK_p,      	spawn,          {.v = dmenucmd } },
 	{ MODKEY,       	      	XK_Return, 	spawn,          {.v = termcmd } },
 	{ MODKEY|SHIFT,                 XK_b,      	togglebar,      {0} },
-	{ MODKEY,                       XK_h,      	focusstack,     {.i = +1 } },
-	{ MODKEY,                       XK_l,      	focusstack,     {.i = -1 } },
-	{ MODKEY|CTRL,			XK_l,      	incnmaster,     {.i = +1 } },
-	{ MODKEY|CTRL,			XK_h,      	incnmaster,     {.i = -1 } },
+	STACKKEYS(MODKEY,                          	focus)
+	STACKKEYS(MODKEY|SHIFT,	                	push)
 	{ MODKEY|SHIFT,                 XK_h,      	setmfact,       {.f = -0.05} },
 	{ MODKEY|SHIFT,                 XK_l,      	setmfact,       {.f = +0.05} },
 	{ MODKEY,                       XK_z, 		zoom,           {0} },
 	{ MODKEY,			XK_f,		togglefullscr,  {0} },
-	{ MODKEY,			XK_a,		focusmaster,	{0} },
 	{ MODKEY|ALT,              	XK_u,      	incrgaps,       {.i = +1 } },
 	{ MODKEY|ALT|SHIFT,    		XK_u,      	incrgaps,       {.i = -1 } },
 	{ MODKEY|ALT,              	XK_i,      	incrigaps,      {.i = +1 } },
@@ -233,21 +248,17 @@ static const Key keys[] = {
 	{ MODKEY|ALT|SHIFT,    		XK_9,      	incrovgaps,     {.i = -1 } },
 	{ MODKEY|ALT,              	XK_0,      	togglegaps,     {0} },
 	{ MODKEY|ALT|SHIFT,    		XK_0,      	defaultgaps,    {0} },
-	{ MODKEY,                       XK_Tab,    	view,           {0} },
 	{ MODKEY|SHIFT,         	XK_c,      	killclient,     {0} },
 	{ MODKEY,              		XK_t,      	setlayout,      {.v = &layouts[0]} },
-	/*{ MODKEY,              	XK_f,   	setlayout,	{.v = &layouts[1]} }, -- sets layout to floating */
 	{ MODKEY,              		XK_c,      	setlayout,      {.v = &layouts[2]} },
 	{ MODKEY,              		XK_s,      	setlayout,      {.v = &layouts[3]} },
 	{ MODKEY,              		XK_w,      	setlayout,      {.v = &layouts[4]} },
 	{ MODKEY,              		XK_space,  	setlayout,      {0} },
 	{ MODKEY|SHIFT,             	XK_space,  	togglefloating, {0} },
-	{ MODKEY,              		XK_0,      	view,           {.ui = ~0 } },
-	{ MODKEY|SHIFT,             	XK_0,      	tag,            {.ui = ~0 } },
+	{ MODKEY,                       XK_Tab,    	view,           {0} },
 	{ ALT|SHIFT,                    XK_Tab,  	focusmon,       {.i = -1 } },
 	{ ALT,      	                XK_Tab, 	focusmon,       {.i = +1 } },
 	{ MODKEY|SHIFT,             	XK_Tab,  	tagmon,         {.i = -1 } },
-	{ MODKEY|SHIFT,             	XK_Tab, 	tagmon,         {.i = +1 } },
 	TAGKEYS(                        XK_1,                      	0)
 	TAGKEYS(                        XK_2,                      	1)
 	TAGKEYS(                        XK_3,                      	2)
@@ -260,16 +271,19 @@ static const Key keys[] = {
 	TAGKEYS(                        XK_0,                      	9)
 	TAGKEYS(                        XK_r,                      	10)
 	TAGKEYS(                        XK_m,                      	11)
-	{ MODKEY|SHIFT,             	XK_q,      	quit,           {0} },
+	{ MODKEY|SHIFT,             	XK_BackSpace,	quit,           {0} },
 	
 	/* custom binds */
 	{ MODKEY,	             	XK_d, 		spawn,          {.v = rofi } },
 	{ MODKEY,			XK_e,		spawn,		{.v = filemanager } }, 
 	{ MODKEY,			XK_b,		spawn,		{.v = browser } },
 	{ CTRL|ALT,			XK_l,		spawn,		{.v = powermenu } },
-	{ ALT,				XK_o,		spawn,		{.v = powersaving } },
+	{ CTRL|ALT,			XK_o,		spawn,		{.v = powersaving } },
 	{ 0,		                XK_Print,	spawn,          {.v = screenshotcmd } },
 	{ CTRL|ALT,	                XK_b,		spawn,          {.v = bluetooth } },
+	{ ALT,	                	XK_p,		spawn,          {.v = powerprof } },
+	{ ALT,		                XK_n,		spawn,          {.v = dunsttog } },
+	{ MODKEY|ALT,            	XK_r,      	spawn,		{.v = record } },
 };
 
 /* button definitions */
@@ -279,7 +293,9 @@ static const Button buttons[] = {
 	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
 	{ ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
 	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
-	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
+	{ ClkStatusText,        0,              Button1,        sigstatusbar,   {.i = 1} },
+	{ ClkStatusText,        0,              Button2,        sigstatusbar,   {.i = 2} },
+	{ ClkStatusText,        0,              Button3,        sigstatusbar,   {.i = 3} },
 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
 	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },

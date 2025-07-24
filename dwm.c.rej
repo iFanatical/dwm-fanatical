@@ -1,117 +1,60 @@
 --- dwm.c
 +++ dwm.c
-@@ -57,21 +57,21 @@
+@@ -47,15 +47,21 @@
+ /* macros */
+ #define BUTTONMASK              (ButtonPressMask|ButtonReleaseMask)
+ #define CLEANMASK(mask)         (mask & ~(numlockmask|LockMask) & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
++#define GETINC(X)               ((X) - 2000)
++#define INC(X)                  ((X) + 2000)
+ #define INTERSECT(x,y,w,h,m)    (MAX(0, MIN((x)+(w),(m)->wx+(m)->ww) - MAX((x),(m)->wx)) \
+                                * MAX(0, MIN((y)+(h),(m)->wy+(m)->wh) - MAX((y),(m)->wy)))
++#define ISINC(X)                ((X) > 1000 && (X) < 3000)
+ #define ISVISIBLE(C)            ((C->tags & C->mon->tagset[C->mon->seltags]))
++#define PREVSEL                 3000
+ #define LENGTH(X)               (sizeof X / sizeof X[0])
++#define MOD(N,M)                ((N)%(M) < 0 ? (N)%(M) + (M) : (N)%(M))
+ #define MOUSEMASK               (BUTTONMASK|PointerMotionMask)
+ #define WIDTH(X)                ((X)->w + 2 * (X)->bw)
+ #define HEIGHT(X)               ((X)->h + 2 * (X)->bw)
  #define TAGMASK                 ((1 << LENGTH(tags)) - 1)
  #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
++#define TRUNC(X,A,B)            (MAX((A), MIN((X), (B))))
  
  /* enums */
  enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
- enum { SchemeNorm, SchemeSel }; /* color schemes */
- enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
-        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
-        NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
- enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; /* default atoms */
--enum { ClkTagBar, ClkLtSymbol, ClkMonNum, ClkStatusText, ClkWinTitle,
-+enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
-        ClkClientWin, ClkRootWin, ClkLast }; /* clicks */
+@@ -835,27 +843,16 @@ focusmon(const Arg *arg)
+ void
+ focusstack(const Arg *arg)
+ {
+-	Client *c = NULL, *i;
++	int i = stackpos(arg);
++	Client *c, *p;
  
- typedef union {
- 	int i;
- 	unsigned int ui;
- 	float f;
- 	const void *v;
- } Arg;
- 
- typedef struct {
-@@ -106,21 +106,20 @@ typedef struct {
- 	const Arg arg;
- } Key;
- 
- typedef struct {
- 	const char *symbol;
- 	void (*arrange)(Monitor *);
- } Layout;
- 
- struct Monitor {
- 	char ltsymbol[16];
--	char monmark[16];
- 	float mfact;
- 	int nmaster;
- 	int num;
- 	int by;               /* bar geometry */
- 	int mx, my, mw, mh;   /* screen size */
- 	int wx, wy, ww, wh;   /* window area  */
- 	unsigned int seltags;
- 	unsigned int sellt;
- 	unsigned int tagset[2];
- 	int showbar;
-@@ -435,22 +434,20 @@ buttonpress(XEvent *e)
- 	if (ev->window == selmon->barwin) {
- 		i = x = 0;
- 		do
- 			x += TEXTW(tags[i]);
- 		while (ev->x >= x && ++i < LENGTH(tags));
- 		if (i < LENGTH(tags)) {
- 			click = ClkTagBar;
- 			arg.ui = 1 << i;
- 		} else if (ev->x < x + TEXTW(selmon->ltsymbol))
- 			click = ClkLtSymbol;
--		else if (ev->x < x + TEXTW(selmon->ltsymbol) + TEXTW(selmon->monmark))
--			click = ClkMonNum;
- 		else if (ev->x > selmon->ww - (int)TEXTW(stext))
- 			click = ClkStatusText;
- 		else
- 			click = ClkWinTitle;
- 	} else if ((c = wintoclient(ev->window))) {
- 		focus(c);
- 		restack(selmon);
- 		XAllowEvents(dpy, ReplayPointer, CurrentTime);
- 		click = ClkClientWin;
- 	}
-@@ -640,22 +637,20 @@ createmon(void)
- 
- 	m = ecalloc(1, sizeof(Monitor));
- 	m->tagset[0] = m->tagset[1] = 1;
- 	m->mfact = mfact;
- 	m->nmaster = nmaster;
- 	m->showbar = showbar;
- 	m->topbar = topbar;
- 	m->lt[0] = &layouts[0];
- 	m->lt[1] = &layouts[1 % LENGTH(layouts)];
- 	strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
--	/* this is actually set in updategeom, to avoid a race condition */
--//	snprintf(m->monmark, sizeof(m->monmark), "(%d)", m->num);
- 	return m;
+-	if (!selmon->sel)
++	if(i < 0)
+ 		return;
+-	if (arg->i > 0) {
+-		for (c = selmon->sel->next; c && !ISVISIBLE(c); c = c->next);
+-		if (!c)
+-			for (c = selmon->clients; c && !ISVISIBLE(c); c = c->next);
+-	} else {
+-		for (i = selmon->clients; i != selmon->sel; i = i->next)
+-			if (ISVISIBLE(i))
+-				c = i;
+-		if (!c)
+-			for (; i; i = i->next)
+-				if (ISVISIBLE(i))
+-					c = i;
+-	}
+-	if (c) {
+-		focus(c);
+-		restack(selmon);
+-	}
++
++	for(p = NULL, c = selmon->clients; c && (i || !ISVISIBLE(c));
++	    i -= ISVISIBLE(c) ? 1 : 0, p = c, c = c->next);
++	focus(c ? c : p);
++	restack(selmon);
  }
  
- void
- destroynotify(XEvent *e)
- {
- 	Client *c;
- 	XDestroyWindowEvent *ev = &e->xdestroywindow;
- 
- 	if ((c = wintoclient(ev->window)))
-@@ -731,23 +726,20 @@ drawbar(Monitor *m)
- 		drw_text(drw, x, 0, w, bh, lrpad / 2, tags[i], urg & 1 << i);
- 		if (occ & 1 << i)
- 			drw_rect(drw, x + boxs, boxs, boxw, boxw,
- 				m == selmon && selmon->sel && selmon->sel->tags & 1 << i,
- 				urg & 1 << i);
- 		x += w;
- 	}
- 	w = TEXTW(m->ltsymbol);
- 	drw_setscheme(drw, scheme[SchemeNorm]);
- 	x = drw_text(drw, x, 0, w, bh, lrpad / 2, m->ltsymbol, 0);
--	w = TEXTW(m->monmark);
--	drw_setscheme(drw, scheme[SchemeNorm]);
--	x = drw_text(drw, x, 0, w, bh, lrpad / 2, m->monmark, 0);
- 
- 	if ((w = m->ww - tw - x) > bh) {
- 		if (m->sel) {
- 			drw_setscheme(drw, scheme[m == selmon ? SchemeSel : SchemeNorm]);
- 			drw_text(drw, x, 0, w, bh, lrpad / 2, m->sel->name, 0);
- 			if (m->sel->isfloating)
- 				drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
- 		} else {
- 			drw_setscheme(drw, scheme[SchemeNorm]);
- 			drw_rect(drw, x, 0, w, bh, 1, 1);
+ Atom
