@@ -61,14 +61,24 @@ static const char col_cyan_bright[] 	= "#46d9ff";
 static const char col_white[] 		= "#efefef";
 static const char col_white_bright[] 	= "#bcbcbc";
 static const char *colors[][3]      = {
-	/*               fg         bg         border   */
-	[SchemeNorm] = { col_magenta_bright, col_gray2, col_gray1 },
-	[SchemeSel]  = { col_cyan, col_gray1,  col_cyan  },
+	/*               		fg         bg         	border   	*/
+	[SchemeNorm] 		= { col_magenta_bright,		col_bgcolor2,		col_bgcolor2 },
+        [SchemeSel]  		= { col_cyan,			col_bgcolor2,  		col_cyan  },
+	[SchemeStatus]		= { col_cyan,			col_bgcolor2,		"#000000"  }, // Statusbar right {text,background,not used but cannot be empty}
+	[SchemeTagsSel]		= { col_cyan_bright,		col_bgcolor,		"#000000"  }, // Tagbar left selected {text,background,not used but cannot be empty}
+	[SchemeTagsNorm]	= { col_white,			col_bgcolor2,		"#000000"  }, // Tagbar left unselected {text,background,not used but cannot be empty}
+	[SchemeInfoSel]		= { col_cyan,			col_bgcolor,		"#000000"  }, // infobar middle  selected {text,background,not used but cannot be empty}
+	[SchemeInfoNorm]	= { col_magenta_bright,		col_bgcolor,		"#000000"  }, // infobar middle  unselected {text,background,not used but cannot be empty}
 };
 static const unsigned int alphas[][3]      = {
     /*               fg      bg        border*/
-    [SchemeNorm] = { OPAQUE, baralpha, borderalpha },
-	[SchemeSel]  = { OPAQUE, baralpha, borderalpha },
+	[SchemeNorm] 		= { OPAQUE, baralpha, borderalpha },
+	[SchemeSel]  		= { OPAQUE, baralpha, borderalpha },
+	[SchemeStatus]		= { OPAQUE, baralpha, borderalpha },
+	[SchemeTagsSel]		= { OPAQUE, baralpha, borderalpha },
+	[SchemeTagsNorm]	= { OPAQUE, baralpha, borderalpha },
+	[SchemeInfoSel]		= { OPAQUE, baralpha, borderalpha },
+	[SchemeInfoNorm]	= { OPAQUE, baralpha, borderalpha },
 };
 
 /* tagging */
@@ -203,8 +213,6 @@ static const Layout layouts[] = {
 /* helper for spawning shell commands in the pre dwm-5.0 fashion */
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 
-#define STATUSBAR "dwmblocks"
-
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
 static const char *dmenucmd[] 		= { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray4, NULL };
@@ -304,4 +312,3 @@ static const Button buttons[] = {
 	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
 	{ ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
 };
-

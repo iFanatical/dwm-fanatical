@@ -203,6 +203,8 @@ static const Layout layouts[] = {
 /* helper for spawning shell commands in the pre dwm-5.0 fashion */
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 
+#define STATUSBAR "dwmblocks"
+
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
 static const char *dmenucmd[] 		= { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray4, NULL };
@@ -216,6 +218,7 @@ static const char *screenshotcmd[] 	= { "sh", "-c", "$SCRIPTS/screenshot.sh", NU
 static const char *bluetooth[]		= { "sh", "-c", "$SCRIPTS/rofi-bluetooth.sh", NULL };
 static const char *powerprof[]		= { "sh", "-c", "$SCRIPTS/power-profiles.sh", NULL };
 static const char *dunsttog[]		= { "sh", "-c", "$SCRIPTS/dunst-blocks.sh", NULL };
+static const char *record[]		= { "sh", "-c", "$SCRIPTS/record.sh", NULL };
 
 
 static const Key keys[] = {
@@ -223,17 +226,12 @@ static const Key keys[] = {
 	{ MODKEY,                       XK_p,      	spawn,          {.v = dmenucmd } },
 	{ MODKEY,       	      	XK_Return, 	spawn,          {.v = termcmd } },
 	{ MODKEY|SHIFT,                 XK_b,      	togglebar,      {0} },
-	{ MODKEY,                       XK_h,      	focusstack,     {.i = +1 } },
-	{ MODKEY,                       XK_l,      	focusstack,     {.i = -1 } },
-	{ MODKEY|CTRL,			XK_l,      	incnmaster,     {.i = +1 } },
 	STACKKEYS(MODKEY,                          	focus)
 	STACKKEYS(MODKEY|SHIFT,	                	push)
-	{ MODKEY|CTRL,			XK_h,      	incnmaster,     {.i = -1 } },
 	{ MODKEY|SHIFT,                 XK_h,      	setmfact,       {.f = -0.05} },
 	{ MODKEY|SHIFT,                 XK_l,      	setmfact,       {.f = +0.05} },
 	{ MODKEY,                       XK_z, 		zoom,           {0} },
 	{ MODKEY,			XK_f,		togglefullscr,  {0} },
-	{ MODKEY,			XK_a,		focusmaster,	{0} },
 	{ MODKEY|ALT,              	XK_u,      	incrgaps,       {.i = +1 } },
 	{ MODKEY|ALT|SHIFT,    		XK_u,      	incrgaps,       {.i = -1 } },
 	{ MODKEY|ALT,              	XK_i,      	incrigaps,      {.i = +1 } },
@@ -250,21 +248,17 @@ static const Key keys[] = {
 	{ MODKEY|ALT|SHIFT,    		XK_9,      	incrovgaps,     {.i = -1 } },
 	{ MODKEY|ALT,              	XK_0,      	togglegaps,     {0} },
 	{ MODKEY|ALT|SHIFT,    		XK_0,      	defaultgaps,    {0} },
-	{ MODKEY,                       XK_Tab,    	view,           {0} },
 	{ MODKEY|SHIFT,         	XK_c,      	killclient,     {0} },
 	{ MODKEY,              		XK_t,      	setlayout,      {.v = &layouts[0]} },
-	/*{ MODKEY,              	XK_f,   	setlayout,	{.v = &layouts[1]} }, -- sets layout to floating */
 	{ MODKEY,              		XK_c,      	setlayout,      {.v = &layouts[2]} },
 	{ MODKEY,              		XK_s,      	setlayout,      {.v = &layouts[3]} },
 	{ MODKEY,              		XK_w,      	setlayout,      {.v = &layouts[4]} },
 	{ MODKEY,              		XK_space,  	setlayout,      {0} },
 	{ MODKEY|SHIFT,             	XK_space,  	togglefloating, {0} },
-	{ MODKEY,              		XK_0,      	view,           {.ui = ~0 } },
-	{ MODKEY|SHIFT,             	XK_0,      	tag,            {.ui = ~0 } },
+	{ MODKEY,                       XK_Tab,    	view,           {0} },
 	{ ALT|SHIFT,                    XK_Tab,  	focusmon,       {.i = -1 } },
 	{ ALT,      	                XK_Tab, 	focusmon,       {.i = +1 } },
 	{ MODKEY|SHIFT,             	XK_Tab,  	tagmon,         {.i = -1 } },
-	{ MODKEY|SHIFT,             	XK_Tab, 	tagmon,         {.i = +1 } },
 	TAGKEYS(                        XK_1,                      	0)
 	TAGKEYS(                        XK_2,                      	1)
 	TAGKEYS(                        XK_3,                      	2)
@@ -289,6 +283,7 @@ static const Key keys[] = {
 	{ CTRL|ALT,	                XK_b,		spawn,          {.v = bluetooth } },
 	{ ALT,	                	XK_p,		spawn,          {.v = powerprof } },
 	{ ALT,		                XK_n,		spawn,          {.v = dunsttog } },
+	{ MODKEY|ALT,            	XK_r,      	spawn,		{.v = record } },
 };
 
 /* button definitions */
@@ -298,7 +293,9 @@ static const Button buttons[] = {
 	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
 	{ ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
 	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
-	{ ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
+	{ ClkStatusText,        0,              Button1,        sigstatusbar,   {.i = 1} },
+	{ ClkStatusText,        0,              Button2,        sigstatusbar,   {.i = 2} },
+	{ ClkStatusText,        0,              Button3,        sigstatusbar,   {.i = 3} },
 	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
 	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
 	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
