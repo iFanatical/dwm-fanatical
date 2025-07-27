@@ -19,4 +19,4 @@ focusmonmouse\
 pertag\
 removeborder\
 stacker\
-vanitygaps\
+vanitygaps
